@@ -50,12 +50,33 @@ resource "aws_iam_role_policy" "ec2_ssm_policy" {
     policy = jsonencode({
         Version = "2012-10-17"
         Statement = [
+        # Permisos existentes
         { Effect = "Allow", Action = ["ssm:UpdateInstanceInformation"], Resource = "*" },
         { Effect = "Allow", Action = ["ssmmessages:*"], Resource = "*" },
-        { Effect = "Allow", Action = ["ec2messages:*"], Resource = "*" }
+        { Effect = "Allow", Action = ["ec2messages:*"], Resource = "*" },
+
+        # Permisos adicionales necesarios para Session Manager
+        { Effect = "Allow", Action = [
+            "ssm:DescribeInstanceInformation",
+            "ssm:GetDeployablePatchSnapshotForInstance",
+            "ssm:GetDocument",
+            "ssm:DescribeDocument",
+            "ssm:SendCommand",
+            "ssm:ListCommandInvocations",
+            "ssm:ListCommands"
+            ], Resource = "*" },
+        { Effect = "Allow", Action = [
+            "cloudwatch:PutMetricData"
+            ], Resource = "*" },
+        { Effect = "Allow", Action = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+            ], Resource = "*" }
         ]
     })
 }
+
 
 # Instance Profile
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
