@@ -20,5 +20,5 @@ module "endpoints" {
     vpc_id   = module.network.vpc_id  
     aws_region = var.region
     subnet_id = module.network.private_subnet_ids 
-    sg_id = module.security.web_sg_id
+    sg_id = module.security.endpoint_sg_id
 }

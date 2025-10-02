@@ -23,6 +23,33 @@ resource "aws_security_group" "web" {
         Name = "Marco-ch-sg-web"
     }
 }
+#Segiuridad para los endpoints de SSM
+resource "aws_security_group" "ssm_endpoint" {
+    name        = "marco-ch-sg-ssm-endpoint"
+    description = "SG for SSM VPC Endpoints"
+    vpc_id      = var.vpc_id
+
+    # Permitir inbound desde la subred privada de la instancia (o SG de la instancia)
+    ingress {
+        from_port       = 443
+        to_port         = 443
+        protocol        = "tcp"
+        cidr_blocks     = ["10.0.0.0/16"] # ajusta según tu VPC
+    }
+
+    # Salida abierta
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags = {
+        Name = "Marco-ch-sg-ssm-endpoint"
+    }
+}
+
 
 # IAM Role para SSM
 resource "aws_iam_role" "ec2_role" {
