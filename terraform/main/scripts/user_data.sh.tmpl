@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+yum update -y
+amazon-linux-extras enable postgresql15
+yum install -y postgresql
+
+# Placeholder for additional initialization
+echo "Hello from EC2 in region ${region}" > /etc/motd
