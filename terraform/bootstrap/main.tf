@@ -1,3 +1,4 @@
+#bucket S3 para almacenar el estado de terraform
 resource "aws_s3_bucket" "tf_state" {
     bucket = var.state_bucket_name
 
@@ -7,6 +8,7 @@ resource "aws_s3_bucket" "tf_state" {
     }
 }
 
+#Tabla Dynamo para el bloqueo del estado y evitar coliciones
 resource "aws_dynamodb_table" "tf_lock" {
     name         = var.lock_table_name
     billing_mode = "PAY_PER_REQUEST"
