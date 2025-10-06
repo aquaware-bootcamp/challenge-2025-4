@@ -55,3 +55,42 @@ resource "aws_route_table_association" "public" {
     subnet_id = each.value.id
     route_table_id = aws_route_table.public.id   
 }
+
+
+# # Elastic IP para NAT Gateway
+# resource "aws_eip" "nat" {
+#   tags = {
+#     Name = "Marco-ch-nat-eip"
+#   }
+# }
+
+# NAT Gateway en subnet pública (usando la primera AZ)
+# resource "aws_nat_gateway" "nat" {
+#   allocation_id = aws_eip.nat.id
+#   subnet_id     = aws_subnet.public[var.azs[0]].id
+#   tags = {
+#     Name = "Marco-ch-nat-gateway"
+#   }
+# }
+
+# # Tabla de rutas privadas
+# resource "aws_route_table" "private" {
+#   vpc_id = aws_vpc.main.id
+
+#   # Ruta 0.0.0.0/0 hacia NAT Gateway
+#   route {
+#     cidr_block     = "0.0.0.0/0"
+#     nat_gateway_id = aws_nat_gateway.nat.id
+#   }
+
+#   tags = {
+#     Name = "Marco-ch-rt-private"
+#   }
+# }
+
+# # Asociar todas las subnets privadas con la tabla de rutas privadas
+# resource "aws_route_table_association" "private" {
+#   for_each = aws_subnet.private
+#   subnet_id      = each.value.id
+#   route_table_id = aws_route_table.private.id
+# }

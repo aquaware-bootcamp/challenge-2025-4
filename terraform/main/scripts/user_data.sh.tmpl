@@ -1,9 +1,21 @@
 #!/bin/bash
-set -euo pipefail
+# 1. Desactivamos la opción 'e' (salir al fallar) para las instalaciones.
+set -uo pipefail
 
-yum update -y
-amazon-linux-extras enable postgresql15
-yum install -y postgresql
+# --- FASE 1: INSTALACIÓN DE SOFTWARE (Permitir fallos, pero continuar) ---
+sudo yum update -y || true
+# amazon-linux-extras enable postgresql15 || true             NO SIRVE EN ESTA AMI
+sudo yum install -y postgresql15 postgresql15-server || true 
+sudo yum install -y amazon-ssm-agent || true
 
-# Placeholder for additional initialization
-echo "Hello from EC2 in region ${region}" > /etc/motd
+# --- FASE 2: ACTIVACIÓN DEL SSM AGENT (El Objetivo) ---
+
+# Reactivamos 'set -e' para asegurar que los comandos CRÍTICOS funcionen.
+set -e
+
+# 🔑 ACTIVACIÓN GARANTIZADA: El servicio se inicia.
+sudo systemctl enable amazon-ssm-agent
+sudo systemctl start amazon-ssm-agent
+
+# --- FASE 3: PERSONALIZACIÓN FINAL ---
+echo "--- SCRIPT COMPLETADO CON ÉXITO ---"
