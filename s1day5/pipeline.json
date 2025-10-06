@@ -1,0 +1,53 @@
+{
+  "pipeline": {
+    "name": "usermgmt-pipeline",
+    "roleArn": "arn:aws:iam::711387135481:role/CodePipelineServiceRole",
+    "artifactStore": {
+      "type": "S3",
+      "location": "codepipeline-artifacts-711387135481"
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [
+          {
+            "name": "Source",
+            "actionTypeId": {
+              "category": "Source",
+              "owner": "AWS",
+              "provider": "CodeStarSourceConnection",
+              "version": "1"
+            },
+            "outputArtifacts": [{"name": "SourceOutput"}],
+            "configuration": {
+              "ConnectionArn": "arn:aws:codeconnections:us-east-1:711387135481:connection/abcd1234-5678...",
+              "FullRepositoryId": "emiravendano/challenge-2025-4",
+              "BranchName": "main"
+            },
+            "runOrder": 1
+          }
+        ]
+      },
+      {
+        "name": "Build",
+        "actions": [
+          {
+            "name": "Build",
+            "actionTypeId": {
+              "category": "Build",
+              "owner": "AWS",
+              "provider": "CodeBuild",
+              "version": "1"
+            },
+            "inputArtifacts": [{"name": "SourceOutput"}],
+            "configuration": {
+              "ProjectName": "usermgmt-build"
+            },
+            "runOrder": 1
+          }
+        ]
+      }
+    ],
+    "version": 1
+  }
+}
