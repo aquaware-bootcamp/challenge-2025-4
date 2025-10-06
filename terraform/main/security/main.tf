@@ -24,6 +24,30 @@ resource "aws_security_group" "web" {
     }
 }
 
+# En tu módulo de Seguridad o IAM (donde está definido el Rol de EC2)
+# ESTE ES EL BLOQUE CORRECTO PARA AGREGAR EL PERMISO DE SECRETS MANAGER
+resource "aws_iam_role_policy" "rds_secret_reader" {
+    name = "rds-secret-reader-policy"
+    
+    # ⭐ Referencia al ID de tu Rol de Instancia EC2
+    # Asegúrate de que 'aws_iam_role.ec2_role' es el nombre correcto de tu recurso Role.
+    role = aws_iam_role.ec2_role.id 
+
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+        {
+            Effect = "Allow"
+            Action = ["secretsmanager:GetSecretValue"]
+            
+            # ⭐ RECURSO (ARN) RESTRICTIVO: Solo permite leer el secreto que RDS creó.
+            # Usamos 'master_user_secret[0].secret_arn' que RDS popula automáticamente.
+            Resource = var.db_password_secret_arn
+        }
+        ]
+    })
+}
+
 # SG para los endpoints de SSM
 resource "aws_security_group" "ssm_endpoint" {
     name        = "marco-ch-sg-ssm-endpoint"
@@ -43,7 +67,44 @@ resource "aws_security_group" "ssm_endpoint" {
     }
 }
 
-# ⭐ REGLA CRUCIAL: Conexión Inbound al Endpoint desde el SG de la instancia (TCP 443)
+# 2. Security Group de la Base de Datos (Solo permite tráfico del EC2)
+resource "aws_security_group" "db" {
+    name        = "db-sg-postgres"
+    description = "Allow port 5432 from App EC2 Security Group"
+    vpc_id      = var.vpc_id
+
+    # Regla INGRESS: Solo permite tráfico en 5432/tcp desde el SG de la aplicación (EC2)
+    ingress {
+        from_port       = 5432
+        to_port         = 5432
+        protocol        = "tcp"
+        # Referencia al SG de la capa de aplicación (web-sg)
+        security_groups = [var.app_security_group_id]
+    }
+
+    # Regla EGRESS: Salida abierta para cualquier actualización o comunicación de AWS
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "marco-rds-sg"
+    }
+}
+
+# 1. Grupo de Subredes para RDS (Necesario para alta disponibilidad)
+resource "aws_db_subnet_group" "postgres" {
+    name       = "pg-subnets-private"
+    # Usa las IDs de las subredes privadas que vienen del módulo 'network'
+    subnet_ids = var.private_subnet_ids
+    tags = {
+        Name = "marco-rds-subnets"
+    }
+}
+
+#  REGLA CRUCIAL: Conexión Inbound al Endpoint desde el SG de la instancia (TCP 443)
 resource "aws_security_group_rule" "ssm_endpoint_inbound_from_ec2" {
     # El destino de esta regla es el SG del endpoint
     security_group_id = aws_security_group.ssm_endpoint.id 
@@ -85,24 +146,6 @@ resource "aws_iam_role" "ec2_role" {
         ]
     })
 }
-
-# # 2. Adjuntar la política principal de administración (Para que la instancia se vuelva 'Managed: true')
-# resource "aws_iam_role_policy_attachment" "ssm_core_attachment" {
-#     role       = aws_iam_role.ec2_role.name
-#     policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore" 
-# }
-
-# # 3. Adjuntar la política de permisos de automatización (Para ejecutar el Runbook)
-# resource "aws_iam_role_policy_attachment" "ssm_automation_attachment" {
-#     role       = aws_iam_role.ec2_role.name
-#     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole" 
-# }
-
-# # 4. Adjuntar la política de solo lectura de EC2 (Para que el Runbook pueda inspeccionar la instancia)
-# resource "aws_iam_role_policy_attachment" "ec2_read_only_attachment" {
-#     role       = aws_iam_role.ec2_role.name
-#     policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess" 
-# }
 
 # 5. Adjuntar la política de lectura de IAM personalizada (Para que el Runbook pueda verificar los perfiles)
 resource "aws_iam_role_policy" "ssm_automation_iam_read" {
