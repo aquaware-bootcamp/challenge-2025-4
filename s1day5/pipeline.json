@@ -22,7 +22,7 @@
             "configuration": {
               "ConnectionArn": "arn:aws:codeconnections:us-east-1:711387135481:connection/abcd1234-5678...",
               "FullRepositoryId": "emiravendano/challenge-2025-4",
-              "BranchName": "main"
+              "BranchName": "emir"
             },
             "runOrder": 1
           }
