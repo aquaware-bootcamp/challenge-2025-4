@@ -46,6 +46,12 @@ jobs:
             --comment "Validating DB connection" \
             --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
 
+            # Comando para obtener el resultado de la ejecución
+            aws ssm list-command-invocations \
+                --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
+                --details \
+                --output json
+
 
     #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---sd
     #   - name: 2. Validate Java and .NET Builds inside Docker
