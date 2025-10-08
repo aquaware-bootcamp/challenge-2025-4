@@ -1,0 +1,69 @@
+name: Day 6 - Validation Workflow (SSM)
+
+on:
+  push:
+    branches:
+      - main
+      - marco
+
+# Variables de entorno globales (USAN SECRETS DE FORMA SEGURA)
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION_MARCO }} 
+  EC2_INSTANCE_ID: ${{ secrets.AWS_EC2_ID_MARCO }} 
+  DB_HOST: ${{ secrets.AWS_DB_HOST_DNS }} 
+  DB_SECRET_ARN: ${{ secrets.AWS_RDS_SECRET_ARN_MARCO }} # Ya guardado en Secrets
+
+jobs:
+  validate-infrastructure:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      # --- PASO 1: AUTENTICACIÓN (OIDC) ---
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_VALIDATION_ROLE_ARN_MARCO }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
+      - name: 1. Validate RDS Connection & Get Secret
+        run: |
+          # El script que se ejecutará en el EC2 (usamos el host de ENTORNO y el ARN de SECRETO)
+          AWS_DB_COMMAND="
+            # 1. Recuperar la contraseña de Secrets Manager (usando el ARN inyectado)
+            # El EC2 usa sus permisos IAM para esta llamada.
+            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${DB_SECRET_ARN} --query SecretString --output text | jq -r '.password'); 
+            
+            # 2. Conexión Psql: Exportar la contraseña a PGPASSWORD y ejecutar la conexión.
+            export PGPASSWORD=\$DB_SECRET; 
+            psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
+          "
+          
+          # 3. Enviar el comando SSM al EC2
+          aws ssm send-command \
+            --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --comment "Validating DB connection" \
+            --parameters commands="$AWS_DB_COMMAND"
+
+    #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---
+    #   - name: 2. Validate Java and .NET Builds inside Docker
+    #     run: |
+    #       # Script que se ejecutará en el EC2 para iniciar el contenedor
+    #       AWS_DOCKER_COMMAND="
+    #         # Ejecutar el contenedor de desarrollo y probar Java y .NET
+    #         docker run --rm marco-dev-image:dev bash -c '
+    #           echo \"Validando Java...\"; java -version; 
+    #           echo \"Validando DotNet...\"; dotnet --info;
+    #           echo \"Validando Maven...\"; mvn -v;
+    #         '
+    #       "
+          
+    #       aws ssm send-command --instance-ids ${{ env.EC2_INSTANCE_ID }} --document-name "AWS-RunShellScript" \
+    #         --parameters commands="$AWS_DOCKER_COMMAND"

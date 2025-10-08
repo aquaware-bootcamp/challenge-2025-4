@@ -1,0 +1,86 @@
+# ====================================================================
+# BUILDER STAGE: INSTALACIÓN DE HERRAMIENTAS Y DEPENDENCIAS
+# ====================================================================
+FROM ubuntu:22.04 AS builder
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Instalar toolchains y utilidades en una sola capa.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl wget git ca-certificates gnupg lsb-release unzip build-essential \
+        openjdk-17-jdk \
+        postgresql-client python3 python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# ========================
+# Instalar Maven manualmente (versión estable 3.9.9)
+# ========================
+ENV MAVEN_VERSION=3.9.9
+RUN wget -q https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz -P /tmp && \
+    tar -xzf /tmp/apache-maven-${MAVEN_VERSION}-bin.tar.gz -C /opt && \
+    ln -s /opt/apache-maven-${MAVEN_VERSION} /opt/maven && \
+    ln -s /opt/maven/bin/mvn /usr/bin/mvn && \
+    rm /tmp/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+
+
+# Configuración de Variables de Entorno
+ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+ENV MAVEN_HOME="/opt/maven"
+ENV PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
+
+# ========================
+# Instalar code-server
+# ========================
+RUN curl -fsSL https://code-server.dev/install.sh | sh
+
+# ========================
+# Instalar .NET SDK
+# ========================
+ENV DOTNET_VERSION 8.0.414
+RUN mkdir -p /opt/dotnet && \
+    wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh && \
+    chmod +x /tmp/dotnet-install.sh && \
+    /tmp/dotnet-install.sh --version $DOTNET_VERSION --install-dir /opt/dotnet && \
+    rm /tmp/dotnet-install.sh
+
+# ====================================================================
+# RUNTIME STAGE: IMAGEN FINAL OPTIMIZADA Y MÁS LIGERA
+# ====================================================================
+FROM ubuntu:22.04 AS runtime
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Instalar solo Apache y utilidades de runtime
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        apache2 net-tools git procps libpq5 \
+        postgresql-client-common \
+        postgresql-client \
+        openjdk-17-jre-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copia de binarios y librerías esenciales
+COPY --from=builder /usr/lib/code-server /usr/lib/code-server
+COPY --from=builder /usr/bin/code-server /usr/bin/code-server
+
+# Copiar toolchains y clientes (JAVA_HOME, .NET, Maven)
+COPY --from=builder /opt/dotnet /opt/dotnet
+COPY --from=builder /usr/lib/jvm /usr/lib/jvm
+COPY --from=builder /opt/maven /opt/maven
+COPY --from=builder /usr/bin/mvn /usr/bin/mvn
+COPY --from=builder /usr/bin/psql /usr/bin/psql
+
+# Variables de entorno
+ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+ENV MAVEN_HOME="/opt/maven"
+ENV PATH="/opt/dotnet:/opt/maven/bin:/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH"
+
+# Configuración final
+WORKDIR /workspace
+EXPOSE 8080 80 5000
+
+# Copiar script de inicio y definir el ENTRYPOINT
+COPY scripts/start.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
