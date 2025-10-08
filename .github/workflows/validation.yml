@@ -35,28 +35,25 @@ jobs:
       - name: 1. Validate RDS Connection & Get Secret
         run: |
           # El ARN del Secreto y Host están disponibles en el entorno ENV.
+          SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
           
-          #   1. Definir el script Bash con sintaxis HERE-STRING para evitar problemas de comillas anidadas.
-          #    Las variables $DB_HOST y $DB_SECRET_ARN se resuelven aquí por el runner de GitHub.
+          # Script que se ejecutará en el EC2 (debe ser una sola cadena)
           AWS_DB_COMMAND="
-            SECRET_ARN_VAL=${{ env.DB_SECRET_ARN }};
-            DB_HOST_VAL=${{ env.DB_HOST }};
-
-            # 1. Recuperar Contraseña del Secreto RDS
-            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id \${SECRET_ARN_VAL} --query SecretString --output text | jq -r '.password');
-
-            # 2. Conexión Psql (usando la contraseña en la variable de entorno)
-            export PGPASSWORD=\$DB_SECRET;
-            psql -h \${DB_HOST_VAL} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
+            # CORRECCIÓN: Escapamos el símbolo $ para que el EC2 lo vea como un comando normal.
+            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); 
+            
+            # Conexión Psql: Usamos la variable exportada
+            export PGPASSWORD=\$DB_SECRET; 
+            psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
           "
-          # 3. Enviar el comando SSM al EC2
+           # 3. Enviar el comando SSM al EC2
           aws ssm send-command \
             --instance-ids ${{ env.EC2_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
             --comment "Validating DB connection" \
             --parameters commands="$AWS_DB_COMMAND"
 
-    #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---
+    #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---sd
     #   - name: 2. Validate Java and .NET Builds inside Docker
     #     run: |
     #       # Script que se ejecutará en el EC2 para iniciar el contenedor
