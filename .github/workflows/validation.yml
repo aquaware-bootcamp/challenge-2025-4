@@ -36,26 +36,19 @@ jobs:
         run: |
           # El ARN del Secreto y Host están disponibles en el entorno ENV.
           
-          # ⭐ 1. Definir el script Bash con sintaxis HERE-STRING para evitar problemas de comillas anidadas.
+          #   1. Definir el script Bash con sintaxis HERE-STRING para evitar problemas de comillas anidadas.
           #    Las variables $DB_HOST y $DB_SECRET_ARN se resuelven aquí por el runner de GitHub.
-          AWS_COMMAND=$(cat << 'EOF'
-            # 1. Instalar JQ para poder parsear el JSON de Secrets Manager
-            sudo apt-get update && sudo apt-get install -y jq
-            
-            # 2. Recuperar la contraseña de Secrets Manager
-            # NOTA: EL SECRETO DEBE SER LEÍDO POR EL EC2 USANDO SU ROL IAM.
-            SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id "${DB_SECRET_ARN}" --query SecretString --output text)
-            
-            # 3. Parsear el JSON del secreto para obtener solo la contraseña
-            DB_PASSWORD=$(echo "$SECRET_VALUE" | jq -r .password)
-            
-            # 4. Conexión Psql: Exportar la contraseña y ejecutar la prueba
-            export PGPASSWORD="$DB_PASSWORD"
-            psql -h ${DB_HOST} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
-            
-          EOF
-          )
-          
+          AWS_DB_COMMAND="
+            SECRET_ARN_VAL=${{ env.DB_SECRET_ARN }};
+            DB_HOST_VAL=${{ env.DB_HOST }};
+
+            # 1. Recuperar Contraseña del Secreto RDS
+            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id \${SECRET_ARN_VAL} --query SecretString --output text | jq -r '.password');
+
+            # 2. Conexión Psql (usando la contraseña en la variable de entorno)
+            export PGPASSWORD=\$DB_SECRET;
+            psql -h \${DB_HOST_VAL} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
+          "
           # 3. Enviar el comando SSM al EC2
           aws ssm send-command \
             --instance-ids ${{ env.EC2_INSTANCE_ID }} \

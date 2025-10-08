@@ -258,8 +258,7 @@ resource "aws_iam_role_policy" "github_ssm_permissions" {
           "ec2:DescribeInstances" 
         ],
         # Restringimos el Resource de SSM a tu región para mayor seguridad (opcional)
-        Resource = "arn:aws:ec2:us-east-1:${data.aws_caller_identity.current.account_id}:instance/*" # Ajusta la región
-      }
+        Resource = "*"       }
     ]
   })
 }
