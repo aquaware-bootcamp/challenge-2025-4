@@ -52,19 +52,6 @@ jobs:
                 --details \
                 --output json
 
-            # Verificando el estado del comando anterior que estaba InProgress: 26a80f37...
-            aws ssm list-command-invocations \
-                --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
-                --query 'CommandInvocations[0].StatusDetails' \
-                --output text
-
-            # Paso para obtener el resultado de la ejecución
-            aws ssm get-command-invocation \
-                --command-id 4358e37a-2fee-476a-a2e8-8c5e120bc880 \
-                --instance-id ${{ env.EC2_INSTANCE_ID }} \
-                --query 'StandardOutputContent' \
-                --output text
-
 
     #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---sd
     #   - name: 2. Validate Java and .NET Builds inside Docker
