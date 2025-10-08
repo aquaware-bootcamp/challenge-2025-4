@@ -34,24 +34,18 @@ jobs:
             # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
       - name: 1. Validate RDS Connection & Get Secret
         run: |
-          # El ARN del Secreto y Host están disponibles en el entorno ENV.
-          SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
-          
-          # Script que se ejecutará en el EC2 (debe ser una sola cadena)
-          AWS_DB_COMMAND="
-            # CORRECCIÓN: Escapamos el símbolo $ para que el EC2 lo vea como un comando normal.
-            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); 
-            
-            # Conexión Psql: Usamos la variable exportada
-            export PGPASSWORD=\$DB_SECRET; 
-            psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
-          "
-           # 3. Enviar el comando SSM al EC2
-          aws ssm send-command \
+            SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
+
+            # ✅ Construir el comando en una sola línea y correctamente escapado
+            AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
+
+            # ✅ Ejecutar el comando en la instancia EC2 vía SSM
+            aws ssm send-command \
             --instance-ids ${{ env.EC2_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
             --comment "Validating DB connection" \
-            --parameters commands="$AWS_DB_COMMAND"
+            --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
+
 
     #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---sd
     #   - name: 2. Validate Java and .NET Builds inside Docker
