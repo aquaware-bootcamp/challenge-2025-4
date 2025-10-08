@@ -31,19 +31,30 @@ jobs:
           role-to-assume: ${{ secrets.AWS_VALIDATION_ROLE_ARN_MARCO }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
+            # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
       - name: 1. Validate RDS Connection & Get Secret
         run: |
-          # El script que se ejecutará en el EC2 (usamos el host de ENTORNO y el ARN de SECRETO)
-          AWS_DB_COMMAND="
-            # 1. Recuperar la contraseña de Secrets Manager (usando el ARN inyectado)
-            # El EC2 usa sus permisos IAM para esta llamada.
-            DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${DB_SECRET_ARN} --query SecretString --output text | jq -r '.password'); 
+          # El ARN del Secreto y Host están disponibles en el entorno ENV.
+          
+          # ⭐ 1. Definir el script Bash con sintaxis HERE-STRING para evitar problemas de comillas anidadas.
+          #    Las variables $DB_HOST y $DB_SECRET_ARN se resuelven aquí por el runner de GitHub.
+          AWS_COMMAND=$(cat << 'EOF'
+            # 1. Instalar JQ para poder parsear el JSON de Secrets Manager
+            sudo apt-get update && sudo apt-get install -y jq
             
-            # 2. Conexión Psql: Exportar la contraseña a PGPASSWORD y ejecutar la conexión.
-            export PGPASSWORD=\$DB_SECRET; 
-            psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
-          "
+            # 2. Recuperar la contraseña de Secrets Manager
+            # NOTA: EL SECRETO DEBE SER LEÍDO POR EL EC2 USANDO SU ROL IAM.
+            SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id "${DB_SECRET_ARN}" --query SecretString --output text)
+            
+            # 3. Parsear el JSON del secreto para obtener solo la contraseña
+            DB_PASSWORD=$(echo "$SECRET_VALUE" | jq -r .password)
+            
+            # 4. Conexión Psql: Exportar la contraseña y ejecutar la prueba
+            export PGPASSWORD="$DB_PASSWORD"
+            psql -h ${DB_HOST} -U pgadmin -d postgres -c 'SELECT 1;' sslmode=require
+            
+          EOF
+          )
           
           # 3. Enviar el comando SSM al EC2
           aws ssm send-command \
@@ -64,6 +75,5 @@ jobs:
     #           echo \"Validando Maven...\"; mvn -v;
     #         '
     #       "
-          
     #       aws ssm send-command --instance-ids ${{ env.EC2_INSTANCE_ID }} --document-name "AWS-RunShellScript" \
     #         --parameters commands="$AWS_DOCKER_COMMAND"
