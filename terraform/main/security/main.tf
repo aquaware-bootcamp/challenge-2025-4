@@ -167,7 +167,7 @@ resource "aws_iam_role_policy" "ssm_automation_iam_read" {
     })
 }
 
-# ⭐ CORRECCIÓN DE IAM: Adjuntar la política administrada (reemplaza la política en línea manual)
+# CORRECCIÓN DE IAM: Adjuntar la política administrada (reemplaza la política en línea manual)
 
 resource "aws_iam_role_policy_attachment" "ssm_core_attachment" {
     role  = aws_iam_role.ec2_role.name
@@ -191,4 +191,75 @@ resource "aws_iam_role_policy_attachment" "ec2_read_only_attachment" {
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
     name = "marco-ec2-ssm-instance-profile"
     role = aws_iam_role.ec2_role.name
+}
+
+
+data "aws_caller_identity" "current" {}
+#rol para git actioons
+data "aws_iam_policy_document" "github_oidc_trust" {
+  statement {
+    sid     = "AllowGitHubActionsToAssume"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    # El ARN del proveedor OIDC de GitHub (usando tu Account ID)
+    principals {
+      type        = "Federated"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
+    }
+
+    # Condición de Autenticación OIDC estándar
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    
+    # Restricción: Solo permite la asunción si el repositorio y la rama son correctos
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = [
+        # Permiso para la rama 'main'
+        "repo:aquaware-bootcamp/challenge-2025-4:ref:refs/heads/main",
+        # Permiso para tu rama 'marco'
+        "repo:aquaware-bootcamp/challenge-2025-4:ref:refs/heads/marco"
+      ]
+    }
+  }
+}
+
+# 3. Creación del Rol de IAM
+resource "aws_iam_role" "github_validation_role" {
+  name               = "github-validation-role"
+  assume_role_policy = data.aws_iam_policy_document.github_oidc_trust.json
+  # Opcional: añade tags para organización
+  tags = {
+    Project = "Bootcamp-Day6-SSM"
+  }
+}
+    #politicas
+
+
+# Política de Permisos: Permite ejecutar comandos de SSM y obtener el estado
+resource "aws_iam_role_policy" "github_ssm_permissions" {
+  name = "ssm-validation-access"
+  role = aws_iam_role.github_validation_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ec2:DescribeInstances" 
+        ],
+        # Restringimos el Resource de SSM a tu región para mayor seguridad (opcional)
+        Resource = "arn:aws:ec2:us-east-1:${data.aws_caller_identity.current.account_id}:instance/*" # Ajusta la región
+      }
+    ]
+  })
 }

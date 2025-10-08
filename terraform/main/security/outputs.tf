@@ -16,3 +16,9 @@ output "db_sg_id" {
     description = "ID of the RDS security group"
     value       = aws_security_group.db.id
 }
+
+# 5. Output Clave
+output "validation_role_arn" {
+  description = "El ARN a almacenar como GitHub Secret (AWS_VALIDATION_ROLE_ARN)"
+  value       = aws_iam_role.github_validation_role.arn
+}
