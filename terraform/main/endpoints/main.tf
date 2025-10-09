@@ -57,7 +57,7 @@ resource "aws_vpc_endpoint" "s3" {
     vpc_endpoint_type = "Gateway"
     
     # Asocia a la tabla de ruteo de tu subred privada
-    route_table_ids = ["rtb-08479da25121d65fd"] 
+    route_table_ids = ["rtb-00b2f6bdeaf6109f9"] 
 
     tags = {
         Name = "marco-s3-gateway"
