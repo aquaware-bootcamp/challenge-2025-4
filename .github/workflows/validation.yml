@@ -92,7 +92,7 @@ jobs:
             SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
 
             # 🧠 Paso 1: Construir comando de validación completo (PSQL + Java)
-            AWS_DB_COMMAND=$(cat <<'EOF'
+            read -r -d '' AWS_DB_COMMAND <<'EOF'
                 DB_SECRET=$(aws secretsmanager get-secret-value --secret-id '${SECRET_ARN}' --query SecretString --output text | jq -r .password);
                 export PGPASSWORD=$DB_SECRET;
 
