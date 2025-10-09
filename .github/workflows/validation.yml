@@ -31,39 +31,59 @@ jobs:
           role-to-assume: ${{ secrets.AWS_VALIDATION_ROLE_ARN_MARCO }}
           aws-region: ${{ env.AWS_REGION }}
 
-            # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
+      # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
       - name: 1. Validate RDS Connection & Get Secret
         run: |
             SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
 
-            # ✅ Construir el comando en una sola línea y correctamente escapado
+            #  Construir el comando en una sola línea y correctamente escapado
             AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
 
-            # ✅ Ejecutar el comando en la instancia EC2 vía SSM 
-            aws ssm send-command \
-            --instance-ids ${{ env.EC2_INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --comment "Validating DB connection" \
-            --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
+            # ---  CÓDIGO ORIGINAL (reemplazado por uno automatizado) ---
+            # aws ssm send-command \
+            # --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+            # --document-name "AWS-RunShellScript" \
+            # --comment "Validating DB connection" \
+            # --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
 
-            # Comando para obtener el resultado de la ejecución
-            aws ssm list-command-invocations \
-                --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
+            # # Comando para obtener el resultado de la ejecución
+            # aws ssm list-command-invocations \
+            #     --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
+            #     --details \
+            #     --output json  
+
+            # ✅ NUEVO BLOQUE: automatiza el envío y monitoreo del comando
+            # Envía el comando vía SSM y guarda el CommandId
+            COMMAND_ID=$(aws ssm send-command \
+              --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+              --document-name "AWS-RunShellScript" \
+              --comment "Validating DB connection" \
+              --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}' \
+              --query "Command.CommandId" \
+              --output text)
+
+            echo "✅ Comando enviado con ID: $COMMAND_ID"
+
+            # Esperar unos segundos para que el comando se inicialice
+            sleep 5
+
+            # Consultar el estado hasta que termine
+            STATUS="Pending"
+            while [ "$STATUS" == "Pending" ] || [ "$STATUS" == "InProgress" ]; do
+              STATUS=$(aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
                 --details \
-                --output json
+                --query "CommandInvocations[0].Status" \
+                --output text)
+              
+              echo "⏳ Estado actual: $STATUS"
+              sleep 5
+            done
 
+            echo "📋 Estado final: $STATUS"
 
-    #   # --- PASO 3: VALIDACIÓN DE TOOLCHAINS (Java/Docker) ---sd
-    #   - name: 2. Validate Java and .NET Builds inside Docker
-    #     run: |
-    #       # Script que se ejecutará en el EC2 para iniciar el contenedor
-    #       AWS_DOCKER_COMMAND="
-    #         # Ejecutar el contenedor de desarrollo y probar Java y .NET
-    #         docker run --rm marco-dev-image:dev bash -c '
-    #           echo \"Validando Java...\"; java -version; 
-    #           echo \"Validando DotNet...\"; dotnet --info;
-    #           echo \"Validando Maven...\"; mvn -v;
-    #         '
-    #       "
-    #       aws ssm send-command --instance-ids ${{ env.EC2_INSTANCE_ID }} --document-name "AWS-RunShellScript" \
-    #         --parameters commands="$AWS_DOCKER_COMMAND"
+            # Mostrar salida del comando
+            aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --output json

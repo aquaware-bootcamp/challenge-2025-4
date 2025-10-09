@@ -63,3 +63,16 @@ resource "aws_vpc_endpoint" "s3" {
         Name = "marco-s3-gateway"
     }
 }
+
+resource "aws_vpc_endpoint" "secretsmanager" {
+    vpc_id              = var.vpc_id
+    service_name        = "com.amazonaws.${var.aws_region}.secretsmanager"
+    vpc_endpoint_type   = "Interface"
+    subnet_ids          = var.subnet_id
+    security_group_ids  = [var.sg_id]
+    private_dns_enabled = true
+
+    tags = {
+        Name = "marco-secretsmanager"
+    }
+}
