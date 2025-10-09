@@ -39,7 +39,7 @@ jobs:
             # ✅ Construir el comando en una sola línea y correctamente escapado
             AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
 
-            # ✅ Ejecutar el comando en la instancia EC2 vía SSM
+            # ✅ Ejecutar el comando en la instancia EC2 vía SSM 
             aws ssm send-command \
             --instance-ids ${{ env.EC2_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
