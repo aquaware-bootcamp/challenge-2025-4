@@ -41,6 +41,8 @@ jobs:
             AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
 
             echo "🔹 Validando Java..."
+            java -version
+            javac -version
             cat > Hello.java <<'EOF'
             public class Hello {
                 public static void main(String[] a){
