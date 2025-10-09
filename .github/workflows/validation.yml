@@ -32,42 +32,115 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # --- PASO 2: VALIDACIÓN DE DB (PSQL con SECRETS MANAGER) ---
-      - name: 1. Validate RDS Connection & Get Secret
+    #   - name: 1. Validate RDS Connection & Get Secret
+    #     run: |
+    #         SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
+
+    #         #  Construir el comando en una sola línea y correctamente escapado
+    #         AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
+
+    #         # ---  CÓDIGO ORIGINAL (reemplazado por uno automatizado) ---
+    #         # aws ssm send-command \
+    #         # --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+    #         # --document-name "AWS-RunShellScript" \
+    #         # --comment "Validating DB connection" \
+    #         # --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
+
+    #         # # Comando para obtener el resultado de la ejecución
+    #         # aws ssm list-command-invocations \
+    #         #     --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
+    #         #     --details \
+    #         #     --output json  
+
+    #         # ✅ NUEVO BLOQUE: automatiza el envío y monitoreo del comando
+    #         # Envía el comando vía SSM y guarda el CommandId
+    #         COMMAND_ID=$(aws ssm send-command \
+    #           --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+    #           --document-name "AWS-RunShellScript" \
+    #           --comment "Validating DB connection" \
+    #           --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}' \
+    #           --query "Command.CommandId" \
+    #           --output text)
+
+    #         echo "✅ Comando enviado con ID: $COMMAND_ID"
+
+    #         # Esperar unos segundos para que el comando se inicialice
+    #         sleep 5
+
+    #         # Consultar el estado hasta que termine
+    #         STATUS="Pending"
+    #         while [ "$STATUS" == "Pending" ] || [ "$STATUS" == "InProgress" ]; do
+    #           STATUS=$(aws ssm list-command-invocations \
+    #             --command-id "$COMMAND_ID" \
+    #             --details \
+    #             --query "CommandInvocations[0].Status" \
+    #             --output text)
+              
+    #           echo "⏳ Estado actual: $STATUS"
+    #           sleep 5
+    #         done
+
+    #         echo "📋 Estado final: $STATUS"
+
+    #         # Mostrar salida del comando
+    #         aws ssm list-command-invocations \
+    #           --command-id "$COMMAND_ID" \
+    #           --details \
+    #           --output json
+      - name: 1. Validate RDS, Java, and (optional .NET)
         run: |
             SECRET_ARN="${{ secrets.AWS_RDS_SECRET_ARN_MARCO }}"
 
-            #  Construir el comando en una sola línea y correctamente escapado
-            AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
+            # 🧠 Paso 1: Construir comando de validación completo (PSQL + Java)
+            AWS_DB_COMMAND=$(cat <<'EOF'
+                DB_SECRET=$(aws secretsmanager get-secret-value --secret-id '${SECRET_ARN}' --query SecretString --output text | jq -r .password);
+                export PGPASSWORD=$DB_SECRET;
 
-            # ---  CÓDIGO ORIGINAL (reemplazado por uno automatizado) ---
-            # aws ssm send-command \
-            # --instance-ids ${{ env.EC2_INSTANCE_ID }} \
-            # --document-name "AWS-RunShellScript" \
-            # --comment "Validating DB connection" \
-            # --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}'
+                echo "🔹 Validando conexión a la base de datos..."
+                psql -h '${{ env.DB_HOST }}' -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require;
 
-            # # Comando para obtener el resultado de la ejecución
-            # aws ssm list-command-invocations \
-            #     --command-id 26a80f37-5bd7-4f21-9175-afc85cb1929e \
-            #     --details \
-            #     --output json  
+                echo "🔹 Validando Java..."
+                cat > Hello.java <<'EOC'
+                public class Hello {
+                public static void main(String[] a) {
+                    System.out.println("Java OK ✅");
+                }
+                }
+                EOC
+                javac Hello.java && java Hello;
 
-            # ✅ NUEVO BLOQUE: automatiza el envío y monitoreo del comando
-            # Envía el comando vía SSM y guarda el CommandId
+                # --- Validación .NET (comentada por ahora) ---
+                # echo "🔹 Validando .NET..."
+                # cat > quick.csproj <<'EON'
+                # <Project Sdk="Microsoft.NET.Sdk">
+                #   <PropertyGroup>
+                #     <OutputType>Exe</OutputType>
+                #     <TargetFramework>net8.0</TargetFramework>
+                #   </PropertyGroup>
+                # </Project>
+                # EON
+                # cat > Program.cs <<'EON'
+                # Console.WriteLine(".NET OK ✅");
+                # EON
+                # dotnet build -c Release && dotnet run --no-build;
+                EOF
+                )
+
+            # 🛰️ Paso 2: Ejecutar el comando remoto en EC2 vía SSM
             COMMAND_ID=$(aws ssm send-command \
               --instance-ids ${{ env.EC2_INSTANCE_ID }} \
               --document-name "AWS-RunShellScript" \
-              --comment "Validating DB connection" \
+              --comment "Validating DB + Java connection" \
               --parameters '{"commands":["'"$AWS_DB_COMMAND"'"]}' \
               --query "Command.CommandId" \
               --output text)
 
             echo "✅ Comando enviado con ID: $COMMAND_ID"
 
-            # Esperar unos segundos para que el comando se inicialice
+            # Esperar unos segundos antes de verificar
             sleep 5
 
-            # Consultar el estado hasta que termine
+            # 🔁 Monitorear el estado del comando
             STATUS="Pending"
             while [ "$STATUS" == "Pending" ] || [ "$STATUS" == "InProgress" ]; do
               STATUS=$(aws ssm list-command-invocations \
@@ -75,15 +148,15 @@ jobs:
                 --details \
                 --query "CommandInvocations[0].Status" \
                 --output text)
-              
               echo "⏳ Estado actual: $STATUS"
               sleep 5
             done
 
             echo "📋 Estado final: $STATUS"
 
-            # Mostrar salida del comando
+            # 🧾 Mostrar la salida del comando (stdout)
             aws ssm list-command-invocations \
               --command-id "$COMMAND_ID" \
               --details \
-              --output json
+              --query "CommandInvocations[0].CommandPlugins[0].Output" \
+              --output text
