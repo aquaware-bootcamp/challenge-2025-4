@@ -39,18 +39,18 @@ jobs:
             #  Construir el comando en una sola línea y correctamente escapado
             AWS_DB_COMMAND="DB_SECRET=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --query SecretString --output text | jq -r .password); export PGPASSWORD=\$DB_SECRET; psql -h ${{ env.DB_HOST }} -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require"
 
-            echo "🔹 Validando conexión a la base de datos..."
-            psql -h '${{ env.DB_HOST }}' -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require;
+            # echo "🔹 Validando conexión a la base de datos..."
+            # psql -h '${{ env.DB_HOST }}' -U pgadmin -d postgres -c 'SELECT 1;' --set=sslmode=require;
 
-            echo "🔹 Validando Java..."
-            cat > Hello.java <<'EOC'
-            public class Hello {
-            public static void main(String[] a) {
-                System.out.println("Java OK ✅");
-            }
-            }
-            EOC
-            javac Hello.java && java Hello;
+            # echo "🔹 Validando Java..."
+            # cat > Hello.java <<'EOC'
+            # public class Hello {
+            # public static void main(String[] a) {
+            #     System.out.println("Java OK ✅");
+            # }
+            # }
+            # EOC
+            # javac Hello.java && java Hello;
 
             # ✅ NUEVO BLOQUE: automatiza el envío y monitoreo del comando
             # Envía el comando vía SSM y guarda el CommandId
