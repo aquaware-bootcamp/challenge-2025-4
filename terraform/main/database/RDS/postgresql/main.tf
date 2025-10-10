@@ -10,7 +10,7 @@ resource "random_password" "db_password" {
 resource "aws_db_instance" "postgres" {
     identifier               = "marco-ch-rds-postgres"
     engine                   = "postgres"
-    engine_version           = "15.7"
+    engine_version           = "15.12"
     instance_class           = "db.t3.micro"
     allocated_storage        = 20
     username                 = "pgadmin"

@@ -262,3 +262,79 @@ resource "aws_iam_role_policy" "github_ssm_permissions" {
     ]
   })
 }
+
+
+# ROL PARA LAMBDA OIDC PROVISIONER
+
+# --- Reutiliza el proveedor OIDC y datos existentes ---
+
+# --- Política de confianza para Terraform Workflow ---
+data "aws_iam_policy_document" "github_oidc_trust_terraform" {
+  statement {
+    sid     = "AllowGitHubActionsToAssumeTerraformRole"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
+    }
+
+    # Condiciones estándar OIDC
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    # Solo permite acceso desde tu repo y ramas específicas
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values = [
+        "repo:aquaware-bootcamp/challenge-2025-4:ref:refs/heads/main",
+        "repo:aquaware-bootcamp/challenge-2025-4:ref:refs/heads/marco"
+      ]
+    }
+  }
+}
+
+# --- Rol de Terraform ---
+resource "aws_iam_role" "github_terraform_role" {
+  name               = "marco-github-terraform-role"
+  assume_role_policy = data.aws_iam_policy_document.github_oidc_trust_terraform.json
+
+  tags = {
+    Project = "Bootcamp-Day7-Terraform"
+  }
+}
+
+# --- Política con permisos de Terraform ---
+data "aws_iam_policy_document" "terraform_permissions" {
+  statement {
+    sid    = "TerraformInfrastructureAccess"
+    effect = "Allow"
+    actions = [
+      "ec2:*",
+      "vpc:*",
+      "iam:*",
+      "s3:*",
+      "cloudwatch:*",
+      "ssm:*",
+      "rds:*"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "terraform_policy" {
+  name        = "terraform-full-access"
+  description = "Permite a Terraform administrar recursos básicos"
+  policy      = data.aws_iam_policy_document.terraform_permissions.json
+}
+
+# --- Asociar la política al rol ---
+resource "aws_iam_role_policy_attachment" "terraform_role_attachment" {
+  role       = aws_iam_role.github_terraform_role.name
+  policy_arn = aws_iam_policy.terraform_policy.arn
+}
