@@ -338,3 +338,43 @@ resource "aws_iam_role_policy_attachment" "terraform_role_attachment" {
   role       = aws_iam_role.github_terraform_role.name
   policy_arn = aws_iam_policy.terraform_policy.arn
 }
+
+  #segunda politica para rol de tf con git (para leer el backend s3)
+  resource "aws_iam_policy" "terraform_backend_access" {
+  name        = "TerraformBackendAccess"
+  description = "Permite acceso a S3 y DynamoDB para Terraform backend"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::tfstate-marco-ai-bootcamp-2",
+          "arn:aws:s3:::tfstate-marco-ai-bootcamp-2/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:711387135481:table/tflock-marco-ai-bootcamp-2"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_backend_policy" {
+  role       = aws_iam_role.github_terraform_role.name
+  policy_arn = aws_iam_policy.terraform_backend_access.arn
+}
+

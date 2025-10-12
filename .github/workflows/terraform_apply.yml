@@ -2,7 +2,6 @@ name: Marco Terraform plan & apply
 on:
   push:
     branches:
-      - main
       - marco   # 
     paths:
       - 'terraform/**'
