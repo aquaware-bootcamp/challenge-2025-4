@@ -1,7 +1,0 @@
-com/example/ucg/service/OpenAiService.class
-com/example/ucg/service/CsvService.class
-com/example/ucg/model/GradedRow.class
-com/example/ucg/web/UploadController.class
-com/example/ucg/model/ApiResponse.class
-com/example/ucg/AppApplication.class
-com/example/ucg/service/CsvService$ParsedCsv.class
