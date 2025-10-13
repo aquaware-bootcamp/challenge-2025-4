@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-load
+  namespace: bootcamp
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: k6 
+        image: grafana/k6:0.49.0
+        command: ["sh", "-c"]
+        args:
+          - |
+            cat <<'EOF' > /tmp/script.js
+            import http from 'k6/http';
+            import { sleep } from 'k6';
+            export const options = { vus: 10, duration: '2m' };
+            export default function () {
+              const url = 'http://ucg-svc.bootcamp/upload';
+              const payload = {
+                file: http.file('value,input_unit,target_unit,student_response\n84.2,fahrenheit,rankine,543.94\n', 'file.csv'),
+                question: 'Grade and summarize.'
+              };
+              http.post(url, payload);
+              sleep(1);
+            }
+            EOF
+            k6 run /tmp/script.js

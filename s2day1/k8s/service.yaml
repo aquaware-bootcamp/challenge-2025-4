@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ucg-svc
+  namespace: bootcamp
+spec:
+  type: LoadBalancer
+  selector: { app: ucg-app }
+  ports:
+    - port: 80
+      targetPort: 8080
+
