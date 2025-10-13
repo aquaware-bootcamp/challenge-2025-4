@@ -3,7 +3,7 @@ name: CI/CD - Deploy to AWS EKS
 on:
   push:
     branches:
-      - main
+      - emir
 
 permissions:
   id-token: write
@@ -69,3 +69,4 @@ jobs:
           done
           echo " Service did not respond successfully after several attempts"
           exit 1
+
