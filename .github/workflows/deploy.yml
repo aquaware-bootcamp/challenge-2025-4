@@ -70,9 +70,10 @@ jobs:
       - name: Verify service is responding
         run: |
           echo "Checking service availability..."
-          URL="http://a310daf6aaede400993e0dbf86555907-531490136.us-east-1.elb.amazonaws.com"
+          # Obtener el DNS del LoadBalancer de forma dinámica
+          EXTERNAL_IP=$(kubectl -n bootcamp get svc ucg-svc -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           for i in {1..10}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EXTERNAL_IP)
             if [ "$STATUS" -eq 200 ]; then
               echo "Service is responding correctly (HTTP 200)"
               exit 0
