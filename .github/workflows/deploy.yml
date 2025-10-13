@@ -18,14 +18,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
+      # 🔹 Configura credenciales primero
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::711387135481:role/GitHubActionsRole
           aws-region: ${{ secrets.AWS_REGION }}
+
+      # 🔹 Ahora sí verifica identidad AWS
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -37,9 +39,9 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo " Building Docker image..."
+          echo "Building Docker image..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          echo " Pushing image to ECR..."
+          echo "Pushing image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Update kubeconfig for EKS
@@ -52,23 +54,23 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo " Updating deployment image in Kubernetes..."
+          echo "Updating deployment image in Kubernetes..."
           kubectl set image deployment/ucg-app ucg-app=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -n bootcamp
           kubectl rollout status deployment/ucg-app -n bootcamp
-          echo " Deployment completed successfully!"
+          echo "Deployment completed successfully!"
 
       - name: Verify service is responding
         run: |
-          echo " Checking service availability..."
+          echo "Checking service availability..."
           URL="http://a310daf6aaede400993e0dbf86555907-531490136.us-east-1.elb.amazonaws.com"
           for i in {1..10}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL)
             if [ "$STATUS" -eq 200 ]; then
-              echo " Service is responding correctly (HTTP 200)"
+              echo "Service is responding correctly (HTTP 200)"
               exit 0
             fi
             echo "Attempt $i: Service not ready (status: $STATUS)"
             sleep 10
           done
-          echo " Service did not respond successfully after several attempts"
+          echo "Service did not respond successfully after several attempts"
           exit 1
