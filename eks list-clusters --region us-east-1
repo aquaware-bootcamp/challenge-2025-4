@@ -1,0 +1,74 @@
+{
+    "repositories": [
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:711387135481:repository/marco-ecr-dev",
+            "registryId": "711387135481",
+            "repositoryName": "marco-ecr-dev",
+            "repositoryUri": "711387135481.dkr.ecr.us-east-1.amazonaws.com/marco-ecr-dev",
+            "createdAt": "2025-09-01T04:45:00.243000-05:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:711387135481:repository/ucg-app",
+            "registryId": "711387135481",
+            "repositoryName": "ucg-app",
+            "repositoryUri": "711387135481.dkr.ecr.us-east-1.amazonaws.com/ucg-app",
+            "createdAt": "2025-10-11T17:36:50.985000-05:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": false
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:711387135481:repository/alvaro-ecr-bootcamp",
+            "registryId": "711387135481",
+            "repositoryName": "alvaro-ecr-bootcamp",
+            "repositoryUri": "711387135481.dkr.ecr.us-east-1.amazonaws.com/alvaro-ecr-bootcamp",
+            "createdAt": "2025-08-08T00:31:00.332000-05:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:711387135481:repository/usermgmt-repo",
+            "registryId": "711387135481",
+            "repositoryName": "usermgmt-repo",
+            "repositoryUri": "711387135481.dkr.ecr.us-east-1.amazonaws.com/usermgmt-repo",
+            "createdAt": "2025-10-05T19:44:27.362000-05:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:711387135481:repository/bootcamp-repo",
+            "registryId": "711387135481",
+            "repositoryName": "bootcamp-repo",
+            "repositoryUri": "711387135481.dkr.ecr.us-east-1.amazonaws.com/bootcamp-repo",
+            "createdAt": "2025-10-08T00:26:38.092000-05:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": false
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        }
+    ]
+}

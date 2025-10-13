@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usermgmt-service
+  namespace: myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: usermgmt
+  template:
+    metadata:
+      labels:
+        app: usermgmt
+    spec:
+      containers:
+      - name: usermgmt
+        image: stacksimplify/kube-usermanagement-microservice:1.0.0
+        env:
+        - name: DB_HOSTNAME
+          value: mysql
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_NAME
+          value: "usermgmt"
+        - name: DB_USERNAME
+          value: "root"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql_root_password
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: backend-data
+          mountPath: /app/data
+      volumes:
+      - name: backend-data
+        persistentVolumeClaim:
+          claimName: backend-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-pv-claim
+  namespace: myapp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: gp2-csi
+

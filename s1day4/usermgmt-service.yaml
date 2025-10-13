@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: usermgmt-service
+  namespace: myapp
+spec:
+  selector:
+    app: usermgmt
+  ports:
+    - port: 8080
+      targetPort: 8095
+
