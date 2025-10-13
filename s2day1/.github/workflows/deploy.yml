@@ -6,8 +6,8 @@ on:
       - main
 
 permissions:
-  id-token: write    # Para autenticación OIDC
-  contents: read     # Necesario para checkout del repo
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -34,11 +34,10 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo "Building image..."
+          echo "Building Docker image..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          echo "Pushing to ECR..."
+          echo "Pushing image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "Image pushed successfully!"
 
       - name: Update kubeconfig for EKS
         run: |
@@ -50,7 +49,7 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo "Deploying to Kubernetes..."
+          echo "Updating deployment image..."
           kubectl set image deployment/ucg-app ucg-app=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -n bootcamp
           kubectl rollout status deployment/ucg-app -n bootcamp
-          echo "Deployment completed successfully 🎉"
+          echo "✅ Deployment completed successfully!"
