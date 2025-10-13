@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - emir
+  workflow_dispatch: # permite ejecutarlo manualmente también
 
 permissions:
   id-token: write
@@ -24,5 +25,15 @@ jobs:
           aws-region: us-east-1
 
       - name: Verify AWS identity
-        run: aws sts get-caller-identity
+        id: verify
+        run: |
+          echo "Checking AWS identity..."
+          aws sts get-caller-identity --output json > identity.json
+          cat identity.json
 
+      - name: ✅ Confirm successful OIDC authentication
+        run: |
+          ACCOUNT_ID=$(jq -r '.Account' identity.json)
+          ROLE_ARN=$(jq -r '.Arn' identity.json)
+
+          if
