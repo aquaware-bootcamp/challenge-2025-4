@@ -62,7 +62,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "Updating deployment image in Kubernetes..."
-          kubectl set image deployment/ucg-app ucg-app=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -n bootcamp
+          kubectl set image deployment/ucg-app ucg=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -n bootcamp
           kubectl rollout status deployment/ucg-app -n bootcamp
           echo "Deployment completed successfully!"
 
