@@ -33,7 +33,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.AWS_VALIDATION_ROLE_ARN_MARCO }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # 4️⃣ Construye y publica la imagen multi-arquitectura
       - name: Build and push Docker image
