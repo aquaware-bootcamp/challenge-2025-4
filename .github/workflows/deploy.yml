@@ -15,25 +15,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Clonar repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 🔹 Configura credenciales primero
-      - name: Configure AWS credentials (OIDC)
+      # 2️⃣ Configurar AWS con Access Keys (evita problemas de OIDC)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 🔹 Ahora sí verifica identidad AWS
+      # 3️⃣ Verificar identidad AWS
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
+      # 4️⃣ Login a ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # 5️⃣ Build & Push Docker image
       - name: Build and Push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -45,21 +48,25 @@ jobs:
           echo "Pushing image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      # 6️⃣ Configurar kubeconfig para EKS
       - name: Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
 
+      # 7️⃣ Deploy a EKS
       - name: Deploy to EKS
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "Updating deployment image in Kubernetes..."
           kubectl set image deployment/ucg-app ucg-app=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -n bootcamp
           kubectl rollout status deployment/ucg-app -n bootcamp
           echo "Deployment completed successfully!"
 
+      # 8️⃣ Verificar que el servicio responde
       - name: Verify service is responding
         run: |
           echo "Checking service availability..."
