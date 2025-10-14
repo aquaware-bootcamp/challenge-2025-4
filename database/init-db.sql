@@ -1,0 +1,2 @@
+DROP DATABASE IF EXISTS usermgmt;
+CREATE DATABASE usermgmt;

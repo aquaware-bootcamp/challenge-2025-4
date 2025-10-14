@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql_root_password
+        - name: MYSQL_DATABASE
+          value: usermgmt
+        ports:
+        - containerPort: 3306
+        # --- AÑADE ESTA SECCIÓN ---
+        resources:
+          requests:
+            memory: "256Mi" # Mínimo de memoria garantizado
+            cpu: "250m"     # Mínimo de CPU garantizado (0.25 de un core)
+          limits:
+            memory: "512Mi" # Máximo de memoria que puede usar
+            cpu: "500m"     # Máximo de CPU que puede usar (0.5 de un core)
+        # -------------------------
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+          subPath: mysql #solucion 
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
+      - name: init-script
+        configMap:
+          name: mysql-initdb
+  
