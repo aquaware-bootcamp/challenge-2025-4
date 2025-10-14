@@ -51,6 +51,22 @@ public class CsvService {
       return new ParsedCsv(md.toString(), count);
     }
   }
+  // ✅ Nuevo método para validar unidades
+  public void validateUnits(ParsedCsv parsed) throws IllegalArgumentException {
+      String[] lines = parsed.markdown().split("\n");
+      List<String> validUnits = List.of("K","C","°C","degC","F","R");
+
+      for (int i = 2; i < lines.length; i++) { // saltar header y separador
+          String[] cols = lines[i].split("\\|");
+          if (cols.length < 5) continue; // seguridad
+          String inUnit = cols[2].trim();
+          String toUnit = cols[3].trim();
+
+          if (!validUnits.contains(inUnit) || !validUnits.contains(toUnit)) {
+              throw new IllegalArgumentException("Invalid unit at row " + (i-1));
+          }
+      }
+  }
 
   public record ParsedCsv(String markdown, int rows) {}
 }

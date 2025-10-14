@@ -1,0 +1,29 @@
+{
+  "info": { "name": "Bootcamp QA", "_postman_id": "xxxx", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    {
+      "name": "Upload CSV",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "sample.csv" },
+            { "key": "prompt", "value": "Grade and summarize", "type": "text" }
+          ]
+        },
+        "url": "{{API_URL}}/upload"
+      }
+    },
+    {
+      "name": "Swagger UI",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{API_URL}}/swagger-ui.html"
+      }
+    }
+  ]
+}
+
