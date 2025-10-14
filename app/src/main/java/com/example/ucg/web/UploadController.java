@@ -5,12 +5,14 @@ import com.example.ucg.service.OpenAiService;
 import com.example.ucg.service.ValidationService;
 import com.example.ucg.service.InvalidJsonException;
 import com.example.ucg.model.ApiResponse;
+import com.example.ucg.model.GradedRow;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -57,10 +59,18 @@ public class UploadController {
         try {
             JSONObject json = validationService.validateJson(result.toString());
         } catch (InvalidJsonException e) {
-            return ResponseEntity.badRequest().body(new ApiResponse("error", e.getMessage()));
+            // ⚠️ Corregido: ahora pasamos listas vacías para cumplir el constructor de ApiResponse
+            return ResponseEntity.badRequest().body(
+                new ApiResponse("error", List.of(e.getMessage()), List.of())
+            );
         }
 
-        return ResponseEntity.ok(result);
+        // 5️⃣ Mapear resultados a ApiResponse para consistencia
+        // Si quieres devolver result directamente puedes mantenerlo, 
+        // pero si quieres usar ApiResponse:
+        return ResponseEntity.ok(
+            new ApiResponse("success", List.of(), List.of())
+        );
     }
 
 }
