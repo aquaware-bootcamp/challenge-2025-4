@@ -1,0 +1,15 @@
+NAME      REFERENCE            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          56m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          57m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          57m
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          57m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          57m
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          58m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          58m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          59m
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          59m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          59m
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          61m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          62m
+ucg-hpa   Deployment/ucg-app   0%/60%    1         2         1          62m
+ucg-hpa   Deployment/ucg-app   1%/60%    1         2         1          63m

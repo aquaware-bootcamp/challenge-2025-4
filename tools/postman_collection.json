@@ -9,7 +9,7 @@
         "body": {
           "mode": "formdata",
           "formdata": [
-            { "key": "file", "type": "file", "src": "sample.csv" },
+            { "key": "file", "type": "file", "src": "testdata/sample.csv" },
             { "key": "prompt", "value": "Grade and summarize", "type": "text" }
           ]
         },
