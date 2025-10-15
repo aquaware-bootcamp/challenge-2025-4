@@ -4,7 +4,7 @@ Servicio Spring Boot desplegado en **AWS EKS**, que evalúa conversiones de unid
 
 ---
 
-## 🚀 Bootstrapping AWS
+## 🚀 Bootstrapping AWS ss
 
 ### 1. Autenticación AWS
 ```bash
