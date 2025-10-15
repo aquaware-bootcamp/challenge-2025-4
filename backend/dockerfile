@@ -1,0 +1,14 @@
+# Usamos una imagen base de Java 17, que es estándar para Spring Boot 3
+FROM amazoncorretto:17-alpine-jdk
+
+# Argumento para especificar la ruta del archivo JAR
+ARG JAR_FILE=target/*.jar
+
+# Copiamos el archivo .jar generado por Maven/Gradle al contenedor
+COPY ${JAR_FILE} app.jar
+
+# Exponemos el puerto 8080, que es el puerto por defecto de Spring Boot
+EXPOSE 8080
+
+# Comando que se ejecutará cuando el contenedor inicie
+ENTRYPOINT ["java","-jar","/app.jar"]

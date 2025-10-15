@@ -8,5 +8,5 @@ spec:
     app: usermgmt
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8095 # se cambio por 8080
   type: ClusterIP

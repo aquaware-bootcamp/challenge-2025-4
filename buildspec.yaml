@@ -1,0 +1,30 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO: "711387135481.dkr.ecr.us-east-1.amazonaws.com/usermgmt-repo"
+    IMAGE_TAG_BACKEND: "marco-backend-$CODEBUILD_RESOLVED_SOURCE_VERSION"
+    IMAGE_TAG_FRONTEND: "marco-frontend-$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO
+  build:
+    commands:
+      - echo Building backend image...
+      - docker build -t usermgmt:latest ./backend
+      - docker tag usermgmt:latest $ECR_REPO:$IMAGE_TAG_BACKEND
+      - echo Building frontend image...
+      - docker build -t frontend:latest ./frontend
+      - docker tag frontend:latest $ECR_REPO:$IMAGE_TAG_FRONTEND
+  post_build:
+    commands:
+      - echo Pushing images to ECR...
+      - docker push $ECR_REPO:$IMAGE_TAG_BACKEND
+      - docker push $ECR_REPO:$IMAGE_TAG_FRONTEND
+      - echo Updating Kubernetes deployments...
+      - aws eks update-kubeconfig --region us-east-1 --name mycluster
+      - kubectl set image deployment/usermgmt-service usermgmt=$ECR_REPO:$IMAGE_TAG_BACKEND --namespace myapp
+      - kubectl set image deployment/frontend-service frontend=$ECR_REPO:$IMAGE_TAG_FRONTEND --namespace myapp

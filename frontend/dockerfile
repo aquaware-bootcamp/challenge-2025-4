@@ -1,0 +1,9 @@
+# Usamos la imagen oficial y ligera de Nginx
+FROM nginx:1.25-alpine
+
+# Copiamos los archivos estáticos de tu frontend (HTML, CSS, JS) a la carpeta que Nginx usa para servir contenido
+# Cambia 'dist' por la carpeta donde están tus archivos compilados si es diferente
+COPY dist/ /usr/share/nginx/html
+
+# Exponemos el puerto 80 para el tráfico web
+EXPOSE 80
