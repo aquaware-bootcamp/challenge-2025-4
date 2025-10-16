@@ -1,30 +1,45 @@
 version: 0.2
 
-env:
-  variables:
-    ECR_REPO: "711387135481.dkr.ecr.us-east-1.amazonaws.com/usermgmt-repo"
-    IMAGE_TAG_BACKEND: "marco-backend-$CODEBUILD_RESOLVED_SOURCE_VERSION"
-    IMAGE_TAG_FRONTEND: "marco-frontend-$CODEBUILD_RESOLVED_SOURCE_VERSION"
-
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO
+      # Las variables AWS_ACCOUNT_ID y AWS_REGION son inyectadas por GitHub Actions.
+      # --- CONFIGURA ESTAS VARIABLES DIRECTAMENTE AQUÍ ---
+      - export EKS_CLUSTER_NAME="EL_NOMBRE_DE_TU_CLUSTER_EKS"
+      - export ECR_BACKEND_REPO="usermgmt-marco"
+      - export ECR_FRONTEND_REPO="usermgmt-marco-frontend"
+      - export K8S_BACKEND_DEPLOYMENT="usermgmt-deployment"
+      - export K8S_FRONTEND_DEPLOYMENT="frontend-deployment"
+      - export K8S_BACKEND_CONTAINER_NAME="usermgmt-container"
+      - export K8S_FRONTEND_CONTAINER_NAME="frontend-container"
+      # -----------------------------------
+      
+      # Variables calculadas (no tocar)
+      - export IMAGE_TAG=$(echo $CODEBUILD_BUILD_ID | cut -d: -f2 | cut -c 1-7) # Usamos el ID de la build
+      - export BACKEND_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_BACKEND_REPO
+      - export FRONTEND_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_FRONTEND_REPO
+      
+      # Iniciar sesión en ECR y conectarse a EKS
+      - echo "Iniciando sesión en Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo "Configurando credenciales para el clúster de EKS $EKS_CLUSTER_NAME..."
+      - aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+
   build:
     commands:
-      - echo Building backend image...
-      - docker build -t usermgmt:latest ./backend
-      - docker tag usermgmt:latest $ECR_REPO:$IMAGE_TAG_BACKEND
-      - echo Building frontend image...
-      - docker build -t frontend:latest ./frontend
-      - docker tag frontend:latest $ECR_REPO:$IMAGE_TAG_FRONTEND
+      # Compilar y construir el backend y frontend (igual que antes)
+      - echo "Compilando el backend..."
+      - cd backend && mvn clean package && echo "Construyendo imagen Docker del backend..." && docker build -t $BACKEND_URI:$IMAGE_TAG -f dockerfile . && cd ..
+      - echo "Construyendo imagen Docker del frontend..."
+      - cd frontend && docker build -t $FRONTEND_URI:$IMAGE_TAG -f dockerfile . && cd ..
+
   post_build:
     commands:
-      - echo Pushing images to ECR...
-      - docker push $ECR_REPO:$IMAGE_TAG_BACKEND
-      - docker push $ECR_REPO:$IMAGE_TAG_FRONTEND
-      - echo Updating Kubernetes deployments...
-      - aws eks update-kubeconfig --region us-east-1 --name mycluster
-      - kubectl set image deployment/usermgmt-service usermgmt=$ECR_REPO:$IMAGE_TAG_BACKEND --namespace myapp
-      - kubectl set image deployment/frontend-service frontend=$ECR_REPO:$IMAGE_TAG_FRONTEND --namespace myapp
+      # Subir ambas imágenes a ECR y actualizar despliegues (igual que antes)
+      - echo "Subiendo imágenes a ECR..."
+      - docker push $BACKEND_URI:$IMAGE_TAG
+      - docker push $FRONTEND_URI:$IMAGE_TAG
+      - echo "Actualizando despliegues en Kubernetes..."
+      - kubectl set image deployment/$K8S_BACKEND_DEPLOYMENT $K8S_BACKEND_CONTAINER_NAME=$BACKEND_URI:$IMAGE_TAG --namespace=default
+      - kubectl set image deployment/$K8S_FRONTEND_DEPLOYMENT $K8S_FRONTEND_CONTAINER_NAME=$FRONTEND_URI:$IMAGE_TAG --namespace=default
+      - echo "¡Pipeline completado exitosamente! ✅"
