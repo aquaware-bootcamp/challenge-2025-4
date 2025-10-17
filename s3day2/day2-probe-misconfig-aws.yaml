@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liveness-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: live
+  template:
+    metadata:
+      labels:
+        app: live
+    spec:
+      containers:
+      - name: demo
+        image: httpd:2.4
+        ports:
+        - containerPort: 80
+        # Liveness probe uses the wrong path (/healthz instead of /health)
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blue
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: blue
+        version: v1
+    spec:
+      containers:
+      - name: web
+        image: hashicorp/http-echo
+        args: ["-text=Blue"]
+        ports:
+        - containerPort: 5678
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: green
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: green
+        version: v1
+    spec:
+      containers:
+      - name: web
+        image: hashicorp/http-echo
+        args: ["-text=Green"]
+        ports:
+        - containerPort: 5678
+

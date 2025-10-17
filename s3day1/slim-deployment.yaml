@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slim
+  template:
+    metadata:
+      labels:
+        app: slim
+    spec:
+      containers:
+      - name: app
+        image: gcr.io/distroless/python3-debian11
+        command: ["python", "-m", "http.server", "8080"]
+      - name: sidecar
+        image: gcr.io/distroless/nodejs-debian11
+        command: ["/nodejs/bin/node", "-e", "setTimeout(() => console.log('done'), 999999)"]
+

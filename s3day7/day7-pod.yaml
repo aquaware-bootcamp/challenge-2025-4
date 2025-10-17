@@ -1,0 +1,18 @@
+# day7-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-tester
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ["sh", "-c", "echo 'PVC funcionando' > /data/test.txt && sleep 3600"]
+    volumeMounts:
+    - mountPath: /data
+      name: data-volume
+  volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: data-pvc
+
